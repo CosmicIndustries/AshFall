@@ -1,4 +1,4 @@
-# AshFall
+# AshFall       <img src="images/ChatGPT Image Sep 2, 2025, 07_20_51 PM.png" alt="Ashfall — log anomaly detection & heatmap visualization" width="100%">
 using a heatMap logs are burned down, leaving behind the essence
 ---
 
@@ -8,7 +8,10 @@ using a heatMap logs are burned down, leaving behind the essence
 It transforms raw logs into actionable insights, highlighting unusual patterns in processes and actions.
 
 ---
-
+<p align="center">
+  <img src="images/ashfall.svg" alt="Ashfall — log anomaly detection & heatmap visualization" width="100%">
+</p>
+---
 ## Features
 
 * 🔎 **Automatic delimiter detection** – works with common CSV/TSV-style logs.
