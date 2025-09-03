@@ -1,0 +1,202 @@
+<svg width="100%" height="auto" viewBox="0 0 1200 420" xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="title desc" preserveAspectRatio="xMidYMid slice">
+  <title id="title">Ashfall — Log anomaly detection &amp; heatmap visualization</title>
+  <desc id="desc">A dark gradient hero with a grid, animated embers, and a red-orange heatmap block symbolizing anomalies.</desc>
+
+  <defs>
+    <!-- Background gradient -->
+    <linearGradient id="bgGrad" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#0b0f14"></stop>
+      <stop offset="60%" stop-color="#121821"></stop>
+      <stop offset="100%" stop-color="#1a1111"></stop>
+    </linearGradient>
+
+    <!-- Title gradient -->
+    <linearGradient id="titleGrad" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0%" stop-color="#ff9b4a"></stop>
+      <stop offset="50%" stop-color="#ff4d4d"></stop>
+      <stop offset="100%" stop-color="#d1336a"></stop>
+    </linearGradient>
+
+    <!-- Subtle glow -->
+    <filter id="softGlow" x="-50%" y="-50%" width="200%" height="200%">
+      <feGaussianBlur stdDeviation="6" result="blur"></feGaussianBlur>
+      <feMerge>
+        <feMergeNode in="blur"></feMergeNode>
+        <feMergeNode in="SourceGraphic"></feMergeNode>
+      </feMerge>
+    </filter>
+
+    <!-- Grid pattern -->
+    <pattern id="grid" width="24" height="24" patternUnits="userSpaceOnUse">
+      <path d="M24 0H0V24" fill="none" stroke="#ffffff" stroke-opacity="0.06" stroke-width="1"></path>
+    </pattern>
+
+    <!-- Heat palette (CSS classes) -->
+    <style>
+      :root { color-scheme: dark light; }
+      .c0 { fill:#2a2f3a; }
+      .c1 { fill:#7a2b2b; }
+      .c2 { fill:#a13731; }
+      .c3 { fill:#d54b2f; }
+      .c4 { fill:#ff6b2e; }
+      .c5 { fill:#ff9a3a; }
+      .panel { fill:#0e131b; opacity:0.88; }
+      .cap { fill:#ffffff; opacity:0.85; }
+      .cap-sub { fill:#c8d1dc; opacity:0.7; }
+      @media (prefers-color-scheme: light) {
+        svg { background:#f6f8fa; }
+        .panel { fill:#ffffff; opacity:0.9; }
+        .cap { fill:#0b0f14; opacity:0.9; }
+        .cap-sub { fill:#334155; opacity:0.8; }
+      }
+    </style>
+
+    <!-- Ember circle -->
+    <circle id="ember" r="2" fill="#ff6b2e"></circle>
+  </defs>
+
+  <!-- Background -->
+  <rect width="1200" height="420" fill="url(#bgGrad)"></rect>
+  <rect width="1200" height="420" fill="url(#grid)"></rect>
+
+  <!-- Large, faint heat haze -->
+  <g opacity="0.35" filter="url(#softGlow)">
+    <radialGradient id="haze" cx="0.5" cy="0.5" r="0.7">
+      <stop offset="0%" stop-color="#ff5a3c" stop-opacity="0.25"></stop>
+      <stop offset="100%" stop-color="#ff5a3c" stop-opacity="0"></stop>
+    </radialGradient>
+    <circle cx="860" cy="230" r="240" fill="url(#haze)"></circle>
+  </g>
+
+  <!-- Title block -->
+  <g transform="translate(72,110)">
+    <text x="0" y="0" font-family="system-ui, -apple-system, Segoe UI, Roboto, Ubuntu, Cantarell, Noto Sans, Arial, sans-serif" font-size="88" font-weight="800" letter-spacing="4" fill="url(#titleGrad)" filter="url(#softGlow)">
+      ASHFALL
+    </text>
+    <text x="4" y="44" font-family="ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono', monospace" font-size="18" fill="#c8d1dc" opacity="0.85">
+      log anomaly detection &amp; heatmap visualization
+    </text>
+  </g>
+
+  <!-- Right-side panel with heatmap -->
+  <g transform="translate(640,70)">
+    <rect class="panel" x="0" y="0" width="470" height="280" rx="14"></rect>
+    <!-- Panel header -->
+    <g transform="translate(0,0)">
+      <rect x="0" y="0" width="470" height="38" rx="14" fill="#131a24" opacity="0.6"></rect>
+      <circle cx="20" cy="19" r="4" fill="#ff5f56"></circle>
+      <circle cx="36" cy="19" r="4" fill="#ffbd2e"></circle>
+      <circle cx="52" cy="19" r="4" fill="#27c93f"></circle>
+      <text x="74" y="24" class="cap" font-family="ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono', monospace" font-size="14">Basename × ActionId — anomaly density</text>
+    </g>
+
+    <!-- Heatmap grid (10 x 6) -->
+    <g transform="translate(24,56)">
+      <!-- generate cells -->
+      <!-- Row 0 -->
+      <rect x="0" y="0" width="36" height="28" rx="4" class="c0"></rect>
+      <rect x="40" y="0" width="36" height="28" rx="4" class="c1"></rect>
+      <rect x="80" y="0" width="36" height="28" rx="4" class="c2"></rect>
+      <rect x="120" y="0" width="36" height="28" rx="4" class="c3"></rect>
+      <rect x="160" y="0" width="36" height="28" rx="4" class="c4"></rect>
+      <rect x="200" y="0" width="36" height="28" rx="4" class="c2"></rect>
+      <rect x="240" y="0" width="36" height="28" rx="4" class="c1"></rect>
+      <rect x="280" y="0" width="36" height="28" rx="4" class="c3"></rect>
+      <rect x="320" y="0" width="36" height="28" rx="4" class="c4"></rect>
+      <rect x="360" y="0" width="36" height="28" rx="4" class="c5"></rect>
+
+      <!-- Row 1 -->
+      <rect x="0" y="34" width="36" height="28" rx="4" class="c1"></rect>
+      <rect x="40" y="34" width="36" height="28" rx="4" class="c0"></rect>
+      <rect x="80" y="34" width="36" height="28" rx="4" class="c1"></rect>
+      <rect x="120" y="34" width="36" height="28" rx="4" class="c2"></rect>
+      <rect x="160" y="34" width="36" height="28" rx="4" class="c3"></rect>
+      <rect x="200" y="34" width="36" height="28" rx="4" class="c4"></rect>
+      <rect x="240" y="34" width="36" height="28" rx="4" class="c5"></rect>
+      <rect x="280" y="34" width="36" height="28" rx="4" class="c3"></rect>
+      <rect x="320" y="34" width="36" height="28" rx="4" class="c2"></rect>
+      <rect x="360" y="34" width="36" height="28" rx="4" class="c1"></rect>
+
+      <!-- Row 2 -->
+      <rect x="0" y="68" width="36" height="28" rx="4" class="c2"></rect>
+      <rect x="40" y="68" width="36" height="28" rx="4" class="c1"></rect>
+      <rect x="80" y="68" width="36" height="28" rx="4" class="c0"></rect>
+      <rect x="120" y="68" width="36" height="28" rx="4" class="c1"></rect>
+      <rect x="160" y="68" width="36" height="28" rx="4" class="c2"></rect>
+      <rect x="200" y="68" width="36" height="28" rx="4" class="c3"></rect>
+      <rect x="240" y="68" width="36" height="28" rx="4" class="c4"></rect>
+      <rect x="280" y="68" width="36" height="28" rx="4" class="c5"></rect>
+      <rect x="320" y="68" width="36" height="28" rx="4" class="c3"></rect>
+      <rect x="360" y="68" width="36" height="28" rx="4" class="c2"></rect>
+
+      <!-- Row 3 -->
+      <rect x="0" y="102" width="36" height="28" rx="4" class="c3"></rect>
+      <rect x="40" y="102" width="36" height="28" rx="4" class="c2"></rect>
+      <rect x="80" y="102" width="36" height="28" rx="4" class="c1"></rect>
+      <rect x="120" y="102" width="36" height="28" rx="4" class="c0"></rect>
+      <rect x="160" y="102" width="36" height="28" rx="4" class="c1"></rect>
+      <rect x="200" y="102" width="36" height="28" rx="4" class="c2"></rect>
+      <rect x="240" y="102" width="36" height="28" rx="4" class="c3"></rect>
+      <rect x="280" y="102" width="36" height="28" rx="4" class="c4"></rect>
+      <rect x="320" y="102" width="36" height="28" rx="4" class="c5"></rect>
+      <rect x="360" y="102" width="36" height="28" rx="4" class="c3"></rect>
+
+      <!-- Row 4 -->
+      <rect x="0" y="136" width="36" height="28" rx="4" class="c4"></rect>
+      <rect x="40" y="136" width="36" height="28" rx="4" class="c3"></rect>
+      <rect x="80" y="136" width="36" height="28" rx="4" class="c2"></rect>
+      <rect x="120" y="136" width="36" height="28" rx="4" class="c1"></rect>
+      <rect x="160" y="136" width="36" height="28" rx="4" class="c0"></rect>
+      <rect x="200" y="136" width="36" height="28" rx="4" class="c1"></rect>
+      <rect x="240" y="136" width="36" height="28" rx="4" class="c2"></rect>
+      <rect x="280" y="136" width="36" height="28" rx="4" class="c3"></rect>
+      <rect x="320" y="136" width="36" height="28" rx="4" class="c4"></rect>
+      <rect x="360" y="136" width="36" height="28" rx="4" class="c5"></rect>
+
+      <!-- Row 5 -->
+      <rect x="0" y="170" width="36" height="28" rx="4" class="c5"></rect>
+      <rect x="40" y="170" width="36" height="28" rx="4" class="c4"></rect>
+      <rect x="80" y="170" width="36" height="28" rx="4" class="c3"></rect>
+      <rect x="120" y="170" width="36" height="28" rx="4" class="c2"></rect>
+      <rect x="160" y="170" width="36" height="28" rx="4" class="c1"></rect>
+      <rect x="200" y="170" width="36" height="28" rx="4" class="c0"></rect>
+      <rect x="240" y="170" width="36" height="28" rx="4" class="c1"></rect>
+      <rect x="280" y="170" width="36" height="28" rx="4" class="c2"></rect>
+      <rect x="320" y="170" width="36" height="28" rx="4" class="c3"></rect>
+      <rect x="360" y="170" width="36" height="28" rx="4" class="c4"></rect>
+    </g>
+
+    <!-- Axis caps -->
+    <text x="18" y="56" class="cap-sub" font-family="ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono', monospace" font-size="12">
+      Basename →
+    </text>
+    <text x="392" y="254" class="cap-sub" text-anchor="end" font-family="ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono', monospace" font-size="12">
+      ActionId →
+    </text>
+  </g>
+
+  <!-- Animated embers -->
+  <g opacity="0.85">
+    <use href="#ember">
+      <animate attributeName="opacity" values="0;1;0" dur="4s" repeatCount="indefinite"></animate>
+      <animate attributeName="cy" values="410;20" dur="7s" repeatCount="indefinite"></animate>
+      <animate attributeName="cx" values="1050;1000;1100;1030" dur="7s" repeatCount="indefinite"></animate>
+    </use>
+    <use href="#ember">
+      <animate attributeName="opacity" values="0;1;0" dur="6s" begin="1s" repeatCount="indefinite"></animate>
+      <animate attributeName="cy" values="420;40" dur="9s" begin="1s" repeatCount="indefinite"></animate>
+      <animate attributeName="cx" values="900;860;920;880" dur="9s" begin="1s" repeatCount="indefinite"></animate>
+    </use>
+    <use href="#ember">
+      <animate attributeName="opacity" values="0;1;0" dur="5s" begin="0.5s" repeatCount="indefinite"></animate>
+      <animate attributeName="cy" values="430;60" dur="8s" begin="0.5s" repeatCount="indefinite"></animate>
+      <animate attributeName="cx" values="750;770;740;760" dur="8s" begin="0.5s" repeatCount="indefinite"></animate>
+    </use>
+  </g>
+
+  <!-- Footer tag -->
+  <g transform="translate(72,360)" opacity="0.9">
+    <rect x="-8" y="-22" rx="6" ry="6" width="230" height="32" fill="#121821" opacity="0.6"></rect>
+    <text x="0" y="0" font-family="ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono', monospace" font-size="14" fill="#c8d1dc">&gt;$ ashfall analyze processlasso.log</text>
+  </g>
+</svg>
