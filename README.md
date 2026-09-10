@@ -55,6 +55,48 @@ python ashfall_tool.py shared --limit 20
 
 All published observations are written to the same canonical shared evidence store.
 
+## NPU acceleration
+
+AshFall can use the ROCK 5B/RK3588 NPU as a **read-only perception accelerator** through Rockchip RKNN-Lite2. NPU execution is an additional observation producer; it does not give AshFall authority to tune the host or change NPU frequency policy.
+
+The verified development environment is:
+
+- Python 3.11 on aarch64
+- NumPy 1.26.4
+- RKNN Toolkit2/Lite2 2.3.2
+- RKNN-Lite2 `cp311` wheel
+- ROCK 5B RKNPU sysfs, driver, and kernel module present
+- NPU governor reported as `rknpu_ondemand`
+- NPU maximum/current frequency observed at 1 GHz
+
+Install the Python runtime using the wheel matching the Python ABI. For Python 3.11, use:
+
+```bash
+WHEEL="/home/radxa/rknn/rknn-toolkit2/packages/rknn_toolkit_lite2-2.3.2-cp311-cp311-manylinux_2_17_aarch64.manylinux2014_aarch64.whl"
+python3 -m pip install --upgrade "numpy==1.26.4"
+python3 -m pip install "$WHEEL"
+```
+
+Verify the AshFall NPU interface with:
+
+```bash
+python3 npu_tool.py info
+```
+
+The `info` path intentionally does not call `RKNNLite.get_sdk_version()` before runtime initialization because some RKNN-Lite 2.3.2 builds emit a misleading `Runtime environment is not inited` diagnostic for that probe.
+
+Actual inference uses `RKNNLite.init_runtime()` and publishes measurements into the same shared evidence store used by the other AshFall perception paths.
+
+NPU policy remains:
+
+```text
+mutates_host       = false
+changes_frequency  = false
+autonomous_control = false
+```
+
+The NPU layer is intended to evolve from infrastructure validation toward real perception workloads and adversarial validation rather than repeated unconstrained benchmark sweeps.
+
 ## Analysis
 
 * Automatic delimiter detection for common CSV/TSV-style logs.
@@ -66,6 +108,7 @@ All published observations are written to the same canonical shared evidence sto
 * CSV exports of anomalous rows and process summaries.
 * Read-only system telemetry perception.
 * Read-only visual feature perception with content hashing.
+* RK3588 NPU-accelerated perception path through RKNN-Lite2.
 * One shared evidence stream for all consuming agents.
 
 ## Architecture
@@ -76,27 +119,32 @@ All published observations are written to the same canonical shared evidence sto
                   │          │          │
                 logs      telemetry    vision
                   │          │          │
-                  └──────────┼──────────┘
-                             ▼
-                    ┌──────────────────┐
-                    │     ASHFALL      │
-                    │    PERCEPTION    │
-                    │                  │
-                    │ observe/extract  │
-                    │ correlate        │
-                    │ detect anomalies │
-                    └────────┬─────────┘
-                             │
-                    SHARED EVIDENCE
-                             │
-            ┌────────────────┼────────────────┐
-            ▼                ▼                ▼
-         JARVIS            AARON            GEORGE
-        decisions        performance       security
-            └────────────────┼────────────────┘
-                             ▼
-                           LEELOO
-                        human experience
+                  │          │          └──────┐
+                  │          │                 │
+                  │          └─────────────┐   │
+                  │                        │   │
+                  └────────────────────────┼───┘
+                                           ▼
+                                  ┌──────────────────┐
+                                  │     ASHFALL      │
+                                  │    PERCEPTION    │
+                                  │                  │
+                                  │ observe/extract  │
+                                  │ correlate        │
+                                  │ detect anomalies │
+                                  │ optional NPU     │
+                                  └────────┬─────────┘
+                                           │
+                                  SHARED EVIDENCE
+                                           │
+                         ┌─────────────────┼─────────────────┐
+                         ▼                 ▼                 ▼
+                      JARVIS            AARON             GEORGE
+                     decisions        performance        security
+                         └─────────────────┼─────────────────┘
+                                           ▼
+                                         LEELOO
+                                      human experience
 ```
 
 The boundary is deliberate:
@@ -119,7 +167,6 @@ Every published event identifies AshFall as the producer, marks visibility as `s
 
 ```text
 jarvis
-
 aaron
 george
 leeloo
@@ -142,6 +189,7 @@ python AshFall.py logs/system_events.csv --mode user
 python AshFall.py logs/system_events.csv --mode agent > ashfall.json
 python ashfall_tool.py system > system-observation.json
 python ashfall_tool.py vision screenshot.png > vision-observation.json
+python npu_tool.py info
 ```
 
 ## License
