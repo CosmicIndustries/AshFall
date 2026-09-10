@@ -23,7 +23,6 @@ import numpy as np
 from ashfall_store import append_evidence, read_evidence
 
 AGENTS = ("jarvis", "aaron", "george", "leeloo")
-SCHEMA = "smithy.forge.v1"
 
 
 def _hash(obj: Any) -> str:
@@ -142,21 +141,28 @@ def train(spec: dict[str, Any], epochs: int = 250, lr: float = 0.01) -> dict[str
     return artifact
 
 
+def _write_json(path: str | None, data: Any) -> None:
+    if not path:
+        return
+    p = Path(path).expanduser()
+    p.parent.mkdir(parents=True, exist_ok=True)
+    p.write_text(json.dumps(data, indent=2) + "\n")
+
+
 def main() -> int:
     parser = argparse.ArgumentParser(description="Smithy agent-native model forge")
     sub = parser.add_subparsers(dest="command", required=True)
-    p = sub.add_parser("propose"); p.add_argument("--seed", type=int)
+    p = sub.add_parser("propose"); p.add_argument("--seed", type=int); p.add_argument("--output")
     d = sub.add_parser("dataset"); d.add_argument("--limit", type=int, default=10000)
-    t = sub.add_parser("train"); t.add_argument("--candidate", required=True, help="JSON candidate file")
+    t = sub.add_parser("train"); t.add_argument("--candidate", required=True); t.add_argument("--output")
     args = parser.parse_args()
     if args.command == "propose":
-        print(json.dumps(propose(args.seed), indent=2)); return 0
+        result = propose(args.seed); _write_json(args.output, result); print(json.dumps(result, indent=2)); return 0
     if args.command == "dataset":
         x, meta = dataset(args.limit)
         print(json.dumps({"schema": "smithy.dataset.v1", "metadata": meta, "shape": list(x.shape)}, indent=2)); return 0
     if args.command == "train":
-        spec = json.loads(Path(args.candidate).read_text())
-        print(json.dumps(train(spec), indent=2)); return 0
+        artifact = train(json.loads(Path(args.candidate).read_text())); _write_json(args.output, artifact); print(json.dumps(artifact, indent=2)); return 0
     return 1
 
 
