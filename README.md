@@ -4,11 +4,13 @@
 
 > using a heatMap logs are burned down, leaving behind the essence
 
-AshFall is a lightweight log analyzer that turns raw operational logs into structured evidence: audits, anomaly signals, process summaries, time patterns, and heatmaps.
+AshFall is a lightweight **system perception and evidence engine**. It turns raw operational logs, host telemetry, and visual inputs into structured observations that every downstream agent can share.
 
-## Two operating modes
+> **AshFall sees. The agents think.**
 
-AshFall has two explicit interfaces built on the same analysis engine.
+## Interfaces
+
+AshFall has human, agent, shared-evidence, and perception-tool interfaces built on the same observation boundary.
 
 ### User mode
 
@@ -18,26 +20,40 @@ Designed for a human investigating a log.
 python AshFall.py /path/to/system.log --mode user
 ```
 
-User mode provides a concise console report, anomaly exports, and the `Basename × ActionId` heatmap when those fields exist.
-
 ### Agent mode
 
-Designed for JARVIS, scripts, pipelines, and other machine consumers.
+Designed for JARVIS, Aaron, George, Leeloo, scripts, and pipelines.
 
 ```bash
 python AshFall.py /path/to/system.log --mode agent
 ```
 
-Agent mode is headless and emits a structured JSON report to stdout. It does not open a graphical window, making it suitable for remote systems and automated orchestration.
+Agent mode is headless and emits a structured JSON report.
 
-The report contains the input path, data audit, numeric feature inventory, anomaly rate, anomalous-process summaries, time-profile information when discoverable, and generated export paths.
+### Shared mode
 
-Live operation is supported in either mode:
+Read the canonical evidence stream without changing it.
 
 ```bash
-python AshFall.py /path/to/system.log --mode user --live
-python AshFall.py /path/to/system.log --mode agent --live
+python AshFall.py --mode shared --limit 20
 ```
+
+## Perception tool
+
+The `ashfall_tool.py` CLI exposes safe, read-only perception operations.
+
+```bash
+python ashfall_tool.py info
+python ashfall_tool.py system
+python ashfall_tool.py vision /path/to/screenshot.png
+python ashfall_tool.py shared --limit 20
+```
+
+`system` collects host identity, CPU load, memory/swap state, process count, network-interface state, and thermal zones when available.
+
+`vision` performs deterministic image feature extraction: dimensions, format, aspect ratio, RGB mean/stddev, luminance statistics, an edge-density proxy, and a SHA-256 of the source image. It does not pretend that feature extraction is semantic understanding; richer vision inference can be added later as another observation producer.
+
+All published observations are written to the same canonical shared evidence store.
 
 ## Analysis
 
@@ -48,29 +64,68 @@ python AshFall.py /path/to/system.log --mode agent --live
 * Time profiling and daily spike detection when a timestamp-like column is present.
 * Heatmap visualization for `Basename × ActionId` data.
 * CSV exports of anomalous rows and process summaries.
+* Read-only system telemetry perception.
+* Read-only visual feature perception with content hashing.
+* One shared evidence stream for all consuming agents.
 
 ## Architecture
 
 ```text
-                    ┌──────────────┐
-                    │   raw logs   │
-                    └──────┬───────┘
-                           │
-                    ┌──────▼───────┐
-                    │ AshFall core │
-                    │   analysis   │
-                    └──────┬───────┘
-                     ┌─────┴─────┐
-                     ▼           ▼
-                ┌────────┐  ┌────────┐
-                │  USER  │  │ AGENT  │
-                │ visual │  │  JSON  │
-                └────────┘  └───┬────┘
-                                 │
-                              JARVIS
+                         REAL SYSTEM
+                  ┌──────────┼──────────┐
+                  │          │          │
+                logs      telemetry    vision
+                  │          │          │
+                  └──────────┼──────────┘
+                             ▼
+                    ┌──────────────────┐
+                    │     ASHFALL      │
+                    │    PERCEPTION    │
+                    │                  │
+                    │ observe/extract  │
+                    │ correlate        │
+                    │ detect anomalies │
+                    └────────┬─────────┘
+                             │
+                    SHARED EVIDENCE
+                             │
+            ┌────────────────┼────────────────┐
+            ▼                ▼                ▼
+         JARVIS            AARON            GEORGE
+        decisions        performance       security
+            └────────────────┼────────────────┘
+                             ▼
+                           LEELOO
+                        human experience
 ```
 
-The important boundary is that **AshFall produces evidence; JARVIS consumes and reasons over that evidence.** AshFall does not autonomously modify the host system.
+The boundary is deliberate:
+
+**AshFall produces observations and evidence. Agents produce interpretations, recommendations, and decisions.**
+
+AshFall does not autonomously tune the host, change security policy, or optimize workloads.
+
+## Shared evidence contract
+
+The canonical store defaults to:
+
+```text
+~/.local/share/ashfall/evidence.jsonl
+```
+
+Override it with `ASHFALL_STORE` when the deployment needs a different location.
+
+Every published event identifies AshFall as the producer, marks visibility as `shared`, and targets the four consumers:
+
+```text
+jarvis
+
+aaron
+george
+leeloo
+```
+
+This prevents each agent from maintaining a competing copy of system truth.
 
 ## Installation
 
@@ -85,6 +140,8 @@ python -m pip install -r requirements.txt
 ```bash
 python AshFall.py logs/system_events.csv --mode user
 python AshFall.py logs/system_events.csv --mode agent > ashfall.json
+python ashfall_tool.py system > system-observation.json
+python ashfall_tool.py vision screenshot.png > vision-observation.json
 ```
 
 ## License
