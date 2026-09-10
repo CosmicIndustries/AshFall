@@ -20,7 +20,7 @@ from typing import Any
 
 import numpy as np
 
-from ashfall_store import DEFAULT_STORE, append_evidence, read_evidence
+from ashfall_store import append_evidence, read_evidence
 
 AGENTS = ("jarvis", "aaron", "george", "leeloo")
 SCHEMA = "smithy.forge.v1"
@@ -52,13 +52,12 @@ def vectorize(obs: dict[str, Any]) -> np.ndarray:
     net = obs.get("network", {})
     up = sum(bool(v.get("is_up")) for v in net.values() if isinstance(v, dict))
     speed = sum(float(v.get("speed_mbps", 0)) for v in net.values() if isinstance(v, dict))
-
     values = [
         float(cpu.get("load1", 0)), float(cpu.get("load5", 0)), float(cpu.get("load15", 0)),
-        float(mem.get("ram_used", 0)), float(mem.get("ram_available", 0)),
-        float(mem.get("swap_used", 0)), float(proc.get("count", 0)),
-        float(proc.get("cpu_percent", 0)), float(np.mean(thermal) if thermal else 0),
-        float(np.max(thermal) if thermal else 0), float(up), float(speed),
+        float(mem.get("ram_used", 0)), float(mem.get("ram_available", 0)), float(mem.get("swap_used", 0)),
+        float(proc.get("count", 0)), float(proc.get("cpu_percent", 0)),
+        float(np.mean(thermal) if thermal else 0), float(np.max(thermal) if thermal else 0),
+        float(up), float(speed),
     ]
     return np.asarray(values, dtype=np.float32)
 
@@ -87,26 +86,14 @@ def propose(seed: int | None = None) -> dict[str, Any]:
         "george": {"objective": "bounded_and_reproducible", "activation": "relu"},
         "leeloo": {"objective": "stable_generalization", "validation_split": 0.2},
     }
-    # Conservative consensus: smallest hidden size satisfying all constraints.
     hidden = min(int(p.get("hidden", 16)) for p in proposals.values() if "hidden" in p)
     spec = {
-        "schema": "smithy.candidate.v1",
-        "task": "ashfall_system_autoencoder",
-        "input_features": 12,
-        "hidden": hidden,
-        "activation": "relu",
-        "output_features": 12,
-        "seed": seed,
-        "agents": proposals,
+        "schema": "smithy.candidate.v1", "task": "ashfall_system_autoencoder",
+        "input_features": 12, "hidden": hidden, "activation": "relu", "output_features": 12,
+        "seed": seed, "agents": proposals,
         "constraints": {"external_pretrained_model": False, "autonomous_control": False},
     }
-    evidence_id = append_evidence({
-        "kind": "smithy_proposal",
-        "producer": "smithy",
-        "visibility": "shared",
-        "audience": list(AGENTS),
-        "candidate": spec,
-    })
+    evidence_id = append_evidence({"kind": "smithy_proposal", "producer": "smithy", "visibility": "shared", "audience": list(AGENTS), "candidate": spec})
     return {"evidence_id": evidence_id, "candidate": spec}
 
 
@@ -117,7 +104,11 @@ def train(spec: dict[str, Any], epochs: int = 250, lr: float = 0.01) -> dict[str
     split = max(1, int(n * 0.8))
     rng = np.random.default_rng(int(spec["seed"]))
     order = rng.permutation(n)
-    tr, va = x[order[:split]], x[order[split:] or order[:1]]
+    train_idx = order[:split]
+    valid_idx = order[split:]
+    if len(valid_idx) == 0:
+        valid_idx = order[-1:]
+    tr, va = x[train_idx], x[valid_idx]
     d, h = x.shape[1], int(spec["hidden"])
     w1 = rng.normal(0, 0.15, (d, h)).astype(np.float32)
     b1 = np.zeros(h, np.float32)
@@ -130,12 +121,9 @@ def train(spec: dict[str, Any], epochs: int = 250, lr: float = 0.01) -> dict[str
         y = a @ w2 + b2
         e = y - tr
         gy = (2.0 / len(tr)) * e
-        gw2 = a.T @ gy
-        gb2 = gy.sum(0)
-        ga = gy @ w2.T
-        gz = ga * (z > 0)
-        gw1 = tr.T @ gz
-        gb1 = gz.sum(0)
+        gw2 = a.T @ gy; gb2 = gy.sum(0)
+        ga = gy @ w2.T; gz = ga * (z > 0)
+        gw1 = tr.T @ gz; gb1 = gz.sum(0)
         w2 -= lr * gw2; b2 -= lr * gb2
         w1 -= lr * gw1; b1 -= lr * gb1
 
@@ -144,22 +132,12 @@ def train(spec: dict[str, Any], epochs: int = 250, lr: float = 0.01) -> dict[str
         return float(np.mean((q - a) ** 2))
 
     artifact = {
-        "schema": "smithy.model.v1",
-        "candidate": spec,
-        "trained_at": time.time(),
-        "dataset": meta,
-        "train_mse": mse(tr),
-        "validation_mse": mse(va),
+        "schema": "smithy.model.v1", "candidate": spec, "trained_at": time.time(),
+        "dataset": meta, "train_mse": mse(tr), "validation_mse": mse(va),
         "weights": {"w1": w1.tolist(), "b1": b1.tolist(), "w2": w2.tolist(), "b2": b2.tolist()},
     }
     artifact["model_id"] = _hash(artifact)
-    evidence_id = append_evidence({
-        "kind": "smithy_model",
-        "producer": "smithy",
-        "visibility": "shared",
-        "audience": list(AGENTS),
-        "model": artifact,
-    })
+    evidence_id = append_evidence({"kind": "smithy_model", "producer": "smithy", "visibility": "shared", "audience": list(AGENTS), "model": artifact})
     artifact["evidence_id"] = evidence_id
     return artifact
 
@@ -171,18 +149,14 @@ def main() -> int:
     d = sub.add_parser("dataset"); d.add_argument("--limit", type=int, default=10000)
     t = sub.add_parser("train"); t.add_argument("--candidate", required=True, help="JSON candidate file")
     args = parser.parse_args()
-
     if args.command == "propose":
-        print(json.dumps(propose(args.seed), indent=2))
-        return 0
+        print(json.dumps(propose(args.seed), indent=2)); return 0
     if args.command == "dataset":
         x, meta = dataset(args.limit)
-        print(json.dumps({"schema": "smithy.dataset.v1", "metadata": meta, "shape": list(x.shape)}, indent=2))
-        return 0
+        print(json.dumps({"schema": "smithy.dataset.v1", "metadata": meta, "shape": list(x.shape)}, indent=2)); return 0
     if args.command == "train":
         spec = json.loads(Path(args.candidate).read_text())
-        print(json.dumps(train(spec), indent=2))
-        return 0
+        print(json.dumps(train(spec), indent=2)); return 0
     return 1
 
 
