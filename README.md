@@ -14,25 +14,17 @@ AshFall has human, agent, shared-evidence, and perception-tool interfaces built 
 
 ### User mode
 
-Designed for a human investigating a log.
-
 ```bash
 python AshFall.py /path/to/system.log --mode user
 ```
 
 ### Agent mode
 
-Designed for JARVIS, Aaron, George, Leeloo, scripts, and pipelines.
-
 ```bash
 python AshFall.py /path/to/system.log --mode agent
 ```
 
-Agent mode is headless and emits a structured JSON report.
-
 ### Shared mode
-
-Read the canonical evidence stream without changing it.
 
 ```bash
 python AshFall.py --mode shared --limit 20
@@ -59,33 +51,9 @@ All published observations are written to the same canonical shared evidence sto
 
 AshFall can use the ROCK 5B/RK3588 NPU as a **read-only perception accelerator** through Rockchip RKNN-Lite2. NPU execution is an additional observation producer; it does not give AshFall authority to tune the host or change NPU frequency policy.
 
-The verified development environment is:
-
-- Python 3.11 on aarch64
-- NumPy 1.26.4
-- RKNN Toolkit2/Lite2 2.3.2
-- RKNN-Lite2 `cp311` wheel
-- ROCK 5B RKNPU sysfs, driver, and kernel module present
-- NPU governor reported as `rknpu_ondemand`
-- NPU maximum/current frequency observed at 1 GHz
-
-Install the Python runtime using the wheel matching the Python ABI. For Python 3.11, use:
-
-```bash
-WHEEL="/home/radxa/rknn/rknn-toolkit2/packages/rknn_toolkit_lite2-2.3.2-cp311-cp311-manylinux_2_17_aarch64.manylinux2014_aarch64.whl"
-python3 -m pip install --upgrade "numpy==1.26.4"
-python3 -m pip install "$WHEEL"
-```
-
-Verify the AshFall NPU interface with:
-
-```bash
-python3 npu_tool.py info
-```
+The verified development environment is Python 3.11 on aarch64, NumPy 1.26.4, RKNN Toolkit2/Lite2 2.3.2, the matching `cp311` wheel, and a visible ROCK 5B RKNPU sysfs/driver/module stack. The observed NPU governor is `rknpu_ondemand` with a 1 GHz maximum/current frequency.
 
 The `info` path intentionally does not call `RKNNLite.get_sdk_version()` before runtime initialization because some RKNN-Lite 2.3.2 builds emit a misleading `Runtime environment is not inited` diagnostic for that probe.
-
-Actual inference uses `RKNNLite.init_runtime()` and publishes measurements into the same shared evidence store used by the other AshFall perception paths.
 
 NPU policy remains:
 
@@ -95,7 +63,93 @@ changes_frequency  = false
 autonomous_control = false
 ```
 
-The NPU layer is intended to evolve from infrastructure validation toward real perception workloads and adversarial validation rather than repeated unconstrained benchmark sweeps.
+## Smithy
+
+**Smithy is AshFall's agent-native capability workshop.** It does not import an outside pretrained model. Its first learning task is generated from AshFall's own system observations.
+
+```text
+ASHFALL
+  │ observations
+  ▼
+SMITHY
+  │
+  ├─ JARVIS  → coordination / objective
+  ├─ AARON   → performance constraints
+  ├─ GEORGE  → safety / reproducibility
+  └─ LEELOO  → usefulness / generalization
+  │
+  ▼
+candidate architecture
+  │
+  ▼
+train locally from AshFall evidence
+  │
+  ▼
+ONNX → RKNN
+  │
+  ▼
+ROCK 5B RKNPU
+  │
+  ▼
+AshFall validation evidence
+  └──────────────→ next forge iteration
+```
+
+The first Smithy candidate is a small system-state autoencoder. It learns a compact representation from the numeric system observations already collected by AshFall. Training is performed on the host; the resulting locally generated model can then be exported to ONNX, compiled for RK3588, and executed through RKNN-Lite2 on the NPU.
+
+Smithy records proposals, model artifacts, and NPU validation in the same shared evidence stream. Agents therefore do not maintain competing copies of system truth.
+
+### Smithy workflow
+
+Collect enough AshFall observations first:
+
+```bash
+python ashfall_tool.py system
+```
+
+Create an agent-consensus candidate:
+
+```bash
+python smithy.py propose --output candidate.json
+```
+
+Inspect the dataset available to Smithy:
+
+```bash
+python smithy.py dataset
+```
+
+Train the candidate using only AshFall observations:
+
+```bash
+python smithy.py train --candidate candidate.json --output model.json
+```
+
+Export the locally forged model:
+
+```bash
+python smithy_npu.py onnx model.json smithy.onnx
+```
+
+Compile it for RK3588:
+
+```bash
+python smithy_npu.py compile smithy.onnx smithy.rknn
+```
+
+Run it on the ROCK 5B NPU and publish validation evidence:
+
+```bash
+python smithy_npu.py npu model.json smithy.rknn
+```
+
+ONNX is an optional build dependency for the export stage:
+
+```bash
+python -m pip install onnx
+```
+
+Smithy deliberately separates **training from NPU execution**. The NPU is the execution/validation target, not a falsely assumed general-purpose training device.
 
 ## Analysis
 
@@ -109,6 +163,7 @@ The NPU layer is intended to evolve from infrastructure validation toward real p
 * Read-only system telemetry perception.
 * Read-only visual feature perception with content hashing.
 * RK3588 NPU-accelerated perception path through RKNN-Lite2.
+* Agent-native Smithy model forging from local AshFall evidence.
 * One shared evidence stream for all consuming agents.
 
 ## Architecture
@@ -119,39 +174,39 @@ The NPU layer is intended to evolve from infrastructure validation toward real p
                   │          │          │
                 logs      telemetry    vision
                   │          │          │
-                  │          │          └──────┐
-                  │          │                 │
-                  │          └─────────────┐   │
-                  │                        │   │
-                  └────────────────────────┼───┘
-                                           ▼
-                                  ┌──────────────────┐
-                                  │     ASHFALL      │
-                                  │    PERCEPTION    │
-                                  │                  │
-                                  │ observe/extract  │
-                                  │ correlate        │
-                                  │ detect anomalies │
-                                  │ optional NPU     │
-                                  └────────┬─────────┘
-                                           │
-                                  SHARED EVIDENCE
-                                           │
-                         ┌─────────────────┼─────────────────┐
-                         ▼                 ▼                 ▼
-                      JARVIS            AARON             GEORGE
-                     decisions        performance        security
-                         └─────────────────┼─────────────────┘
-                                           ▼
-                                         LEELOO
-                                      human experience
+                  └──────────┼──────────┘
+                             ▼
+                    ┌──────────────────┐
+                    │     ASHFALL      │
+                    │    PERCEPTION    │
+                    └────────┬─────────┘
+                             │
+                    SHARED EVIDENCE
+                             │
+                    ┌────────▼────────┐
+                    │     SMITHY      │
+                    │ capability forge│
+                    └────────┬────────┘
+                             │
+                    ┌────────┼────────┐
+                    ▼        ▼        ▼
+                 JARVIS   AARON    GEORGE
+                    └────────┼────────┘
+                             ▼
+                          LEELOO
+                             │
+                       forged model
+                             ▼
+                          RKNPU
+                             │
+                             └──────→ ASHFALL
 ```
 
 The boundary is deliberate:
 
-**AshFall produces observations and evidence. Agents produce interpretations, recommendations, and decisions.**
+**AshFall produces observations and evidence. Smithy forges capabilities. Agents produce interpretations, recommendations, and decisions.**
 
-AshFall does not autonomously tune the host, change security policy, or optimize workloads.
+AshFall and Smithy do not autonomously tune the host or change security policy.
 
 ## Shared evidence contract
 
@@ -163,7 +218,7 @@ The canonical store defaults to:
 
 Override it with `ASHFALL_STORE` when the deployment needs a different location.
 
-Every published event identifies AshFall as the producer, marks visibility as `shared`, and targets the four consumers:
+Every published event identifies its producer, marks visibility as `shared`, and targets:
 
 ```text
 jarvis
@@ -172,11 +227,9 @@ george
 leeloo
 ```
 
-This prevents each agent from maintaining a competing copy of system truth.
-
 ## Installation
 
-Requires Python 3.9+.
+Requires Python 3.9+ for the core. The NPU path additionally requires a compatible RKNN-Lite2 environment; Smithy ONNX export requires the optional `onnx` package.
 
 ```bash
 python -m pip install -r requirements.txt
