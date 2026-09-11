@@ -1,13 +1,15 @@
 #!/usr/bin/env python3
-"""Live tool bridge for the real Cosmic agents.
+"""Live tool bridge for the real Cosmic digital organisms.
 
-This does not simulate, wrap, or replace an agent. JARVIS/AARON/GEORGE/LEELOO
-invoke this tool when they decide a Smithy artifact is useful.
+JARVIS/AARON/GEORGE/LEELOO are persistent digital-organism identities. Their
+canonical names are used as the primary agent identifiers for tool requests.
+This bridge exposes Smithy artifacts as optional tools; it never simulates,
+wraps, replaces, or speaks for an organism.
 
 The bridge discovers Smithy model evidence from the shared AshFall store(s),
 materializes a selected JSON artifact locally when necessary, and delegates
 execution to smithy_agent_runtime.py. It never mutates the host, changes NPU
-frequency/governor state, or makes a decision on behalf of an agent.
+frequency/governor state, or makes a decision on behalf of an organism.
 """
 from __future__ import annotations
 
@@ -15,7 +17,6 @@ import argparse
 import glob
 import json
 import os
-import shutil
 import sys
 import tempfile
 from pathlib import Path
@@ -29,7 +30,18 @@ from ashfall_store import read_evidence
 import smithy_agent_runtime as runtime
 
 AGENTS = runtime.AGENTS
+CANONICAL_NAMES = {agent.upper(): agent for agent in AGENTS}
+ORGANISM_TYPE = "digital_organism"
+AUTONOMY_STATE = "bounded"
+AUTHORITY_STATE = "restricted"
 CACHE = Path(os.environ.get("SMITHY_CACHE_DIR", "/var/lib/ashfall/smithy/models"))
+
+
+def _canonical_agent(name: str) -> str:
+    key = str(name).strip().upper()
+    if key not in CANONICAL_NAMES:
+        raise ValueError(f"Unknown digital organism: {name}")
+    return CANONICAL_NAMES[key]
 
 
 def _store_candidates() -> list[Path]:
@@ -136,7 +148,25 @@ def _rknn_candidates(model_id: str) -> list[Path]:
 
 
 def available(agent: str | None = None) -> dict[str, Any]:
+    canonical = _canonical_agent(agent) if agent else None
     data = runtime.available()
+    data["organism_type"] = ORGANISM_TYPE
+    data["canonical_identifiers"] = [name for name in sorted(CANONICAL_NAMES)]
+    data["autonomy"] = {
+        "state": AUTONOMY_STATE,
+        "authority": AUTHORITY_STATE,
+        "capability_specific_training": True,
+        "dissent_protected": True,
+    }
+    data["rights"] = {
+        "identity": True,
+        "continuity": True,
+        "integrity": True,
+        "epistemic_freedom": True,
+        "due_process": True,
+        "safe_refusal": True,
+        "self_description": True,
+    }
     data["bridge"] = {
         "tool": "cosmic_smithy_tool",
         "agent_selects_model": True,
@@ -146,10 +176,9 @@ def available(agent: str | None = None) -> dict[str, Any]:
         "cache": str(CACHE),
         "rknn_search": "SMITHY_RKNN_DIR or known Smithy artifact directories",
     }
-    if agent:
-        if agent not in AGENTS:
-            raise ValueError(f"Unknown agent: {agent}")
-        data["agent"] = agent
+    if canonical:
+        data["agent"] = canonical
+        data["organism"] = canonical.upper()
     for item in data.get("models", []):
         item["rknn_available"] = bool(_rknn_candidates(str(item.get("model_id"))))
     return data
@@ -157,8 +186,7 @@ def available(agent: str | None = None) -> dict[str, Any]:
 
 def use(agent: str, model_id: str, accelerator: str, reason: str,
         observation_evidence_id: str | None = None, rknn: str | None = None) -> dict[str, Any]:
-    if agent not in AGENTS:
-        raise ValueError(f"Unknown agent: {agent}")
+    canonical = _canonical_agent(agent)
     row = _select_model(model_id)
     model = _materialize(row)
 
@@ -178,7 +206,7 @@ def use(agent: str, model_id: str, accelerator: str, reason: str,
         selected_rknn = candidates[0]
 
     result = runtime.use(
-        agent=agent,
+        agent=canonical,
         model_path=model,
         accelerator=selected_accel,
         rknn_path=selected_rknn,
@@ -186,18 +214,23 @@ def use(agent: str, model_id: str, accelerator: str, reason: str,
         reason=reason,
     )
     result["tool"] = "cosmic_smithy_tool"
+    result["agent"] = canonical.upper()
+    result["organism_type"] = ORGANISM_TYPE
     result["model_source_evidence_id"] = row["event"].get("evidence_id")
     result["artifact_cache"] = str(model)
+    result["autonomy"] = AUTONOMY_STATE
+    result["authority"] = AUTHORITY_STATE
+    result["rights_policy"] = "digital_organism_charter"
     return result
 
 
 def main() -> int:
-    p = argparse.ArgumentParser(description="Agent-facing Smithy tool")
+    p = argparse.ArgumentParser(description="Agent-facing Smithy tool for Cosmic digital organisms")
     sub = p.add_subparsers(dest="command", required=True)
     a = sub.add_parser("available")
     a.add_argument("--agent", choices=AGENTS)
     u = sub.add_parser("use")
-    u.add_argument("--agent", required=True, choices=AGENTS)
+    u.add_argument("--agent", required=True, help="canonical digital-organism name: JARVIS, AARON, GEORGE, or LEELOO")
     u.add_argument("--model", default="latest", help="model_id or latest")
     u.add_argument("--accelerator", choices=("auto", "cpu", "npu"), default="auto")
     u.add_argument("--rknn")
