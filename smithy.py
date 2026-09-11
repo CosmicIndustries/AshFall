@@ -162,7 +162,17 @@ def main() -> int:
         x, meta = dataset(args.limit)
         print(json.dumps({"schema": "smithy.dataset.v1", "metadata": meta, "shape": list(x.shape)}, indent=2)); return 0
     if args.command == "train":
-        artifact = train(json.loads(Path(args.candidate).read_text())); _write_json(args.output, artifact); print(json.dumps(artifact, indent=2)); return 0
+        candidate = json.loads(Path(args.candidate).read_text())
+        # Accept either a bare smithy.candidate.v1 object or the
+        # smithy proposal envelope produced by `propose --output`.
+        if candidate.get("schema") != "smithy.candidate.v1" and isinstance(candidate.get("candidate"), dict):
+            candidate = candidate["candidate"]
+        if candidate.get("schema") != "smithy.candidate.v1":
+            raise ValueError("Candidate file is not a smithy.candidate.v1 artifact")
+        artifact = train(candidate)
+        _write_json(args.output, artifact)
+        print(json.dumps(artifact, indent=2))
+        return 0
     return 1
 
 
