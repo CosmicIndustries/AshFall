@@ -22,20 +22,26 @@ for f in ashfall_store.py smithy.py smithy_agent_runtime.py cosmic_smithy_tool.p
   [[ -f "${ROOT}/${f}" ]] || { echo "Missing ${ROOT}/${f}" >&2; exit 3; }
 done
 
-install -d -m 0755 "${PREFIX}" "${CONF_DIR}" "${TOOLS_DIR}"
+install -d -m 0755 "${PREFIX}" "${CONF_DIR}" "${TOOLS_DIR}" "/var/lib/ashfall/smithy/models"
 for f in ashfall_store.py smithy.py smithy_agent_runtime.py cosmic_smithy_tool.py; do
   install -m 0755 "${ROOT}/${f}" "${PREFIX}/${f}"
 done
 
 ln -sfn "${PREFIX}/cosmic_smithy_tool.py" "${BIN}"
 
-# Preserve an existing configuration. The runtime itself also searches the
-# canonical system store plus per-user AshFall stores, so installation does
-# not require knowing which account owns the current evidence stream.
+# Give every real agent a stable, obvious tool endpoint while keeping one
+# implementation and one shared evidence history.
+for agent in jarvis aaron george leeloo; do
+  ln -sfn "${BIN}" "/usr/local/sbin/${agent}-smithy"
+done
+
+# Preserve an existing configuration. The runtime searches the configured
+# store plus canonical/per-user AshFall stores, so installation does not
+# require replacing the existing agent services.
 if [[ ! -f "${CONF}" ]]; then
   cat > "${CONF}" <<'EOF'
 # Smithy agent-tool configuration.
-# Override these paths only when the deployment uses a non-standard store.
+# Optional overrides:
 # ASHFALL_STORE=/var/lib/ashfall/evidence.jsonl
 # SMITHY_CACHE_DIR=/var/lib/ashfall/smithy/models
 # SMITHY_RKNN_DIR=/var/lib/ashfall/smithy/models
@@ -48,6 +54,12 @@ cat > "${MANIFEST}" <<'EOF'
   "schema": "cosmic.agent.tool.v1",
   "tool": "smithy",
   "entrypoint": "/usr/local/sbin/cosmic-agent-smithy",
+  "agent_entrypoints": {
+    "JARVIS": "/usr/local/sbin/jarvis-smithy",
+    "AARON": "/usr/local/sbin/aaron-smithy",
+    "GEORGE": "/usr/local/sbin/george-smithy",
+    "LEELOO": "/usr/local/sbin/leeloo-smithy"
+  },
   "description": "Optional locally forged computational artifacts created by Smithy from AshFall evidence.",
   "agents": ["JARVIS", "AARON", "GEORGE", "LEELOO"],
   "selection": {
@@ -72,9 +84,8 @@ cat > "${MANIFEST}" <<'EOF'
 EOF
 chmod 0644 "${MANIFEST}"
 
-# Give the existing service account a standard environment hook without
-# replacing its service definition. systemd services can opt in via a drop-in
-# later; the per-user CLI remains usable immediately.
+# Standard environment hook for future service drop-ins; it does not replace
+# or modify the existing agent services.
 cat > "/usr/local/sbin/smithy-agent-env" <<'EOF'
 #!/usr/bin/env bash
 set -euo pipefail
@@ -96,15 +107,11 @@ printf '%s\n' \
   "---------------------------" \
   "Entrypoint: ${BIN}" \
   "Manifest:  ${MANIFEST}" \
+  "Per-agent endpoints: /usr/local/sbin/{jarvis,aaron,george,leeloo}-smithy" \
   "Config:    ${CONF}" \
   "" \
-  "Agent discovery:" \
+  "Example:" \
   "  sudo ${BIN} available --agent jarvis" \
-  "" \
-  "Agent use (CPU):" \
-  "  sudo ${BIN} use --agent aaron --model latest --accelerator cpu --reason 'evaluate current system state'" \
-  "" \
-  "Agent use (NPU auto):" \
-  "  sudo ${BIN} use --agent aaron --model latest --accelerator auto --reason 'accelerated evaluation of current system state'" \
+  "  sudo ${BIN} use --agent aaron --model latest --accelerator auto --reason 'AARON-selected evaluation'" \
   "" \
   "No cosmic-agent-core replacement, host mutation, or NPU frequency control was installed."
