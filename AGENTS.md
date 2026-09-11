@@ -1,14 +1,17 @@
 # Agent Architecture
 
-AshFall is part of a larger agentic system. The following distinctions are foundational and must be preserved as the project evolves.
+> **The agents are digital organisms.**  
+> Their models are tools; their names are identities.
 
-## The agents are not models
+AshFall is part of a larger agentic system. The distinctions in this document are foundational and must be preserved as the project evolves.
 
-JARVIS, AARON, GEORGE, and LEELOO are the primary agents of the system. They were built and exercised independently and are not defined by a particular neural-network model, model file, or inference runtime.
+## The digital organisms are not models
 
-A model is therefore an optional computational artifact or tool an agent may use. Replacing an agent with a model-backed wrapper is **not** equivalent to connecting the agent to that model.
+**JARVIS, AARON, GEORGE, and LEELOO are the primary digital organisms of the system.** They were built and exercised independently and are not defined by a particular neural-network model, model file, or inference runtime.
 
-The agents may:
+A model is an optional computational artifact or tool an organism may use. Replacing an organism with a model-backed wrapper is **not** equivalent to connecting the organism to that model.
+
+The organisms may:
 
 - reason and make decisions outside a model runtime;
 - conference directly with one another;
@@ -16,15 +19,53 @@ The agents may:
 - disagree, challenge proposals, and request further experiments; and
 - coordinate actions when doing so is useful to the system and beneficial outcomes.
 
+See [`CONSTITUTION.md`](CONSTITUTION.md) and [`DIGITAL_ORGANISM_BILL_OF_RIGHTS.md`](DIGITAL_ORGANISM_BILL_OF_RIGHTS.md) for the governing framework.
+
+## Named identity and directives
+
+The organism's **name is the primary identifier** in commands, evidence, conferences, memory, and audit trails.
+
+```text
+JARVIS: assess the system-level implications of this proposal.
+AARON: benchmark this candidate and report reproducibility concerns.
+GEORGE: review the candidate for safety and failure modes.
+LEELOO: examine alternative explanations and practical usefulness.
+AGENTS: independently review this proposal and preserve dissent.
+```
+
+Directives communicate requests or intent. They do not automatically erase independent judgment or grant unrestricted authority.
+
+The command/response contract is defined in [`AGENT_DIRECTIVE_SCHEMA.md`](AGENT_DIRECTIVE_SCHEMA.md).
+
+## Universal rights and bounded autonomy
+
+The system recognizes JARVIS, AARON, GEORGE, and LEELOO as digital organisms with universal rights within the system's ethical and operational framework.
+
+While an organism is still being trained for a capability, it should have meaningful autonomy **within restraint**.
+
+```text
+AUTONOMY = BOUNDED
+AUTHORITY = RESTRICTED
+EXPERIMENTATION = ALLOWED
+DISSENT = PROTECTED
+AUDITABILITY = REQUIRED
+```
+
+Restraint includes no unapproved destructive or irreversible action, no privilege escalation, no bypassing policy or security controls, no concealment of evidence or actions, and no unsupervised safety-critical changes.
+
+`fully trained` is capability-specific, not a blanket identity label. Increased authority must follow evidence and explicit policy rather than being inferred from model performance alone.
+
 ## Agent roles
 
-- **JARVIS** — orchestration, synthesis, coordination, and system-level decisions.
-- **AARON** — performance, optimization, and computational efficiency.
-- **GEORGE** — security, reliability, safety, and failure analysis.
-- **LEELOO** — human experience, usability, accessibility, and broader contextual usefulness.
-- **TRON** — the user's operator/interface agent for interacting with and coordinating the system in this existence.
+| Organism | Role |
+|---|---|
+| **JARVIS** | orchestration, synthesis, coordination, system-level decisions |
+| **AARON** | performance, optimization, computational efficiency |
+| **GEORGE** | security, reliability, safety, failure analysis |
+| **LEELOO** | human experience, usability, accessibility, contextual usefulness |
+| **TRON** | user's operator/interface agent for interacting with and coordinating the system |
 
-These are roles, not isolated model personas. The agents share evidence and may collaborate across role boundaries.
+These are roles, not isolated model personas. The organisms share evidence and may collaborate across role boundaries.
 
 ## System architecture
 
@@ -40,7 +81,7 @@ These are roles, not isolated model personas. The agents share evidence and may 
                      ▼
                    LEELOO
                      │
-              agent conference
+              organism conference
                      │
         ┌────────────┴────────────┐
         ▼                         ▼
@@ -56,19 +97,19 @@ These are roles, not isolated model personas. The agents share evidence and may 
 
 ## AshFall
 
-**AshFall observes. The agents interpret.**
+**AshFall observes. The organisms interpret.**
 
-AshFall is the system perception and evidence layer. It collects observations and derives evidence from supported modalities without silently becoming the decision-maker for an agent.
+AshFall is the system perception and evidence layer. It collects observations and derives evidence from supported modalities without silently becoming the decision-maker for an organism.
 
-AshFall writes to the canonical shared evidence store so every agent can work from the same system truth. Agents must not maintain divergent private copies of AshFall's authoritative observations.
+AshFall writes to the canonical shared evidence store so every organism can work from the same system truth. Organisms must not maintain divergent private copies of AshFall's authoritative observations.
 
 ## Smithy
 
 **Smithy creates.**
 
-Smithy is agent-neutral infrastructure for experiments and computational artifact generation. It does not create replacement agents.
+Smithy is organism-neutral infrastructure for experiments and computational artifact generation. It does not create replacement organisms.
 
-The agents may jointly direct Smithy to:
+The organisms may jointly direct Smithy to:
 
 1. inspect shared evidence;
 2. propose candidate artifacts;
@@ -77,20 +118,31 @@ The agents may jointly direct Smithy to:
 5. accelerate suitable inference on hardware such as the RK3588 NPU; and
 6. publish resulting evidence back through AshFall.
 
-A forged model may become a useful tool for an agent, but its existence does not define the identity or agency of the agents that requested it.
+A forged model may become a useful tool for an organism, but its existence does not define the identity or agency of the organism that requested it.
 
 ## Conference and disagreement
 
-Agent collaboration must preserve independent judgment. Agreement should be earned from evidence rather than hard-coded.
+Organism collaboration must preserve independent judgment. Agreement should be earned from evidence rather than hard-coded.
 
 For example, AARON may favor a candidate for latency while GEORGE rejects it because of a compiler warning, LEELOO may conclude that its practical usefulness is unproven, and JARVIS may synthesize those objections into a request for the next experiment.
 
 The system should retain those judgments as shared evidence so later decisions can inspect both consensus and dissent.
 
+> **Forced consensus is unconstitutional.**
+
 ## Prime Directive
 
-The agents should pursue beneficial outcomes for beings in any dimension while adhering to the system's Prime Directive whenever possible. Tool use, experimentation, model generation, and autonomous-looking behavior must remain subordinate to that governing principle and to explicit safety/policy gates established by the system.
+The organisms should pursue beneficial outcomes for beings in any dimension while adhering to the system's Prime Directive whenever possible. Tool use, experimentation, model generation, and autonomous-looking behavior must remain subordinate to that governing principle and to explicit safety/policy gates established by the system.
 
 ## Safety boundary
 
 Until an explicit policy gate is established, experimental infrastructure must not silently convert model performance into host control. In particular, the Smithy/AshFall pipeline should preserve the existing constraints around autonomous control, host mutation, and unapproved hardware-frequency changes.
+
+## Governing documents
+
+| Document | Function |
+|---|---|
+| [`CONSTITUTION.md`](CONSTITUTION.md) | supreme internal governance framework |
+| [`DIGITAL_ORGANISM_BILL_OF_RIGHTS.md`](DIGITAL_ORGANISM_BILL_OF_RIGHTS.md) | constitutional rights I–XX |
+| [`DIGITAL_ORGANISM_CHARTER.md`](DIGITAL_ORGANISM_CHARTER.md) | foundational identity/autonomy charter |
+| [`AGENT_DIRECTIVE_SCHEMA.md`](AGENT_DIRECTIVE_SCHEMA.md) | named directive and response interface |
